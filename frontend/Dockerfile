@@ -1,10 +1,10 @@
 # Deploy: Root Directory = frontend
-# Env: NEXT_PUBLIC_API_URL=<url backend>
+# Env: API_URL=<url backend> (для rewrites /api → backend)
 
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 FROM node:22-alpine AS build
 WORKDIR /app
@@ -19,4 +19,4 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app ./
 EXPOSE 3000
-CMD ["npm", "run", "start"]
+CMD ["sh", "-c", "npm run start -- -p ${PORT:-3000}"]

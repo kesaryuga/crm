@@ -1,146 +1,139 @@
-# Размещение CRM на бесплатном сервере (тест)
+# Пошагово: бесплатное размещение CRM (тест)
 
-Главный принцип из ТЗ: **бесплатный хостинг — временный слой**.  
-PostgreSQL, файлы и конфиг должны переезжать на обычный VPS без потери данных.
+Актуально на **сентябрь 2026**. Перед запуском сверьте тарифы — они меняются.
 
-## Схема (рекомендуется)
+## Вариант A (рекомендуется без карты): Render Free + Supabase Free
 
-| Часть | Где | Зачем |
-|-------|-----|-------|
-| **БД** | [Supabase](https://supabase.com) — Free PostgreSQL | надёжная БД, есть export |
-| **Backend** | [Railway](https://railway.app) или [Render](https://render.com) | Docker, есть free/trial |
-| **Frontend** | тот же Railway/Render | один сервис или отдельно |
-| **Файлы** | volume на том же сервисе **или** S3 (Cloudflare R2 / Backblaze B2) | не ephemeral disk |
-| **Backup** | cron на сервере → ваш диск / облако | 7 daily / 4 weekly / 3 monthly |
+Подходит, чтобы потестировать API и интерфейс 1–4 недели.
 
-> Не храните рабочие файлы только на ephemeral-диске бесплатного сервиса.
+| Слуга | Платформа | Лимиты |
+|-------|-----------|--------|
+| PostgreSQL | Supabase Free | 500 МБ, **пауза после 1 недели бездействия**, макс. 2 проекта |
+| Backend | Render Free web | 512 МБ RAM, засыпает через 15 мин простоя, 750 instance-hours/мес на workspace |
+| Frontend | Render Free web | как backend |
+| Файлы | local `/data/uploads` | **не переживают** redeploy/spin-down на Free |
 
----
+**Не используйте Render Free Postgres** — он удаляется через 30 дней. Только внешний Supabase/Neon.
 
-## Шаг 1. БД — Supabase (5 минут)
+## Вариант B: Railway Free Trial + Supabase Free
 
-1. Зарегистрируйтесь на https://supabase.com → **New project**
-2. Запомните регион (лучше EU)
-3. **Project Settings → Database → Connection string → URI**
-4. Замените `postgres://` на `postgresql+psycopg://`  
-   Пример:
-   ```
-   postgresql+psycopg://postgres:ПАРОЛЬ@db.xxxxx.supabase.co:5432/postgres
-   ```
-5. Это значение — `DATABASE_URL`
+Если нужны volume для файлов на 30 дней.
 
-Бэкап: Supabase → Database → Backups, плюс наш `scripts/backup.sh`.
+| Слуга | Платформа | Лимиты |
+|-------|-----------|--------|
+| PostgreSQL | Supabase Free | см. выше |
+| Backend + Frontend | Railway Free Trial | $5 one-time credit на 30 дней, **без карты** |
+| Volume `/data/uploads` | Railway | до 500 МБ |
+
+После Trial: платный Hobby ($5/мес) или перенос на VPS (`docs/runbook-vps.md`).
+
+**План Free Railway ($1/мес credit) не держит сервисы 24/7** — RAM ~$10/GB/мес.
 
 ---
 
-## Шаг 2. Backend — Railway (самый простой путь)
+## Шаг 1 — База данных (Supabase, 5 минут)
 
-1. https://railway.app → **New Project → Deploy from GitHub repo**
-2. Выложите папку `crm` на GitHub (без `.env`)
-3. **Root Directory** = `backend` (или весь репозиторий + Dockerfile)
-4. **Variables** (Settings → Variables):
+1. https://supabase.com → **New project** (регион ближе к вам, напр. `eu-central-1`).
+2. Придумайте пароль базы (запишите).
+3. **Project Settings → Database → Connection string**
+4. Возьмите **Session pooler** (не Transaction pooler) — SQLAlchemy + транзакции.
+5. Замените `postgres://` на `postgresql+psycopg://`
+6. Добавьте `?sslmode=require`, если его нет.
+7. Это значение — `DATABASE_URL`.
 
-| Переменная | Пример |
-|------------|--------|
-| `DATABASE_URL` | `postgresql+psycopg://...` из Supabase |
-| `SECRET_KEY` | длинная случайная строка (сгенерируйте) |
+Пример:
+
+```text
+postgresql+psycopg://postgres:ПАРОЛЬ@aws-0-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+Раз в неделю заходите в Supabase или шлите любой SQL — иначе free project **засыпает**.
+
+---
+
+## Шаг 2 — Секреты (один раз)
+
+Сгенерируйте и **не коммитьте**:
+
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+python -c "import secrets; print(secrets.token_urlsafe(18))"
+```
+
+| Переменная | Значение |
+|------------|----------|
+| `APP_ENV` | `staging` (включает `/docs` для тестов) |
+| `APP_NAME` | `CRM` |
+| `TIMEZONE` | `Europe/Minsk` |
+| `DATABASE_URL` | из шага 1 |
+| `SECRET_KEY` | случайный (первый `token_urlsafe`) |
 | `ADMIN_EMAIL` | `admin@kit-lab.by` |
-| `ADMIN_PASSWORD` | **смените** с `ChangeMe!2026` |
-| `APP_ENV` | `production` |
+| `ADMIN_PASSWORD` | новый пароль (не `ChangeMe!2026`) |
 | `STORAGE_BACKEND` | `local` |
 | `STORAGE_LOCAL_PATH` | `/data/uploads` |
 | `LOGIN_RATE_LIMIT_ENABLED` | `true` |
-| `PORT` | `8000` |
+| `LOG_LEVEL` | `INFO` |
 
-5. **Start Command** (если спросит):
-   ```
-   uvicorn app.main:app --host 0.0.0.0 --port 8000
-   ```
-6. **Volume** (если есть): смонтируйте `/data/uploads` — иначе файлы пропадут при redeploy
-
-После старта:
-- `https://ваш-проект.up.railway.app/health/live` → `{"status":"ok"}`
-- `https://ваш-проект.up.railway.app/docs` → Swagger (в production закроется)
+Черновик с секретами (только локально): `.env.deploy.local` — уже в `.gitignore`.
 
 ---
 
-## Шаг 3. Frontend (можно на том же Railway)
+## Шаг 3A — Render (вариант A)
 
-**Вариант А — быстро для теста:** отдавайте статику Next.js:
+1. https://dashboard.render.com → **New → Blueprint** → репозиторий `kesaryuga/crm`
+2. Blueprint подхватит `render.yaml` (два web service: `crm-backend`, `crm-frontend`).
+3. Заполните секретные env (`DATABASE_URL`, `SECRET_KEY`, `ADMIN_*`) — они помечены `sync: false`.
+4. У `crm-frontend` проверьте `API_URL` / `NEXT_PUBLIC_API_URL` = публичный host backend (`crm-backend.onrender.com` или как в дашборде). Frontend проксирует `/api` и `/health` на backend (same-origin cookies).
+5. Дождитесь деплоя, затем:
+   - `https://crm-backend.onrender.com/health/live` → `{"status":"ok"}`
+   - `https://crm-backend.onrender.com/docs` (при `APP_ENV=staging`)
+   - `https://crm-frontend.onrender.com/login` — вход `ADMIN_EMAIL` / `ADMIN_PASSWORD`
 
-1. Отдельный сервис с Root Directory = `frontend`
-2. Build: `npm run build` · Start: `npm run start`
-3. Переменная `NEXT_PUBLIC_API_URL` = URL backend из шага 2
+## Шаг 3B — Railway (вариант B)
 
-**Вариант Б — бесплатно дольше:** Vercel / Netlify (Static Next.js) + тот же API URL.
+1. https://railway.app → **New Project → Deploy from GitHub repo** → `kesaryuga/crm`
+2. **Root Directory** = `backend` (использует `backend/Dockerfile` + `backend/railway.json`)
+3. Variables — таблица из шага 2 + `APP_URL` = будущий URL frontend
+4. **Volume**: mount path `/data/uploads`
+5. Ещё один сервис из того же repo, **Root Directory** = `frontend`
+6. У frontend: `API_URL` и `NEXT_PUBLIC_API_URL` = публичный URL backend (`https://...up.railway.app`)
+7. Проверки те же: `/health/live`, `/login`
 
 ---
 
-## Шаг 4. Backup (обязательно)
+## Шаг 4 — Резервные копии (обязательно)
 
-На сервере / в cron:
-
-```bash
-# каждый день в 02:00
-0 2 * * * cd /opt/crm && bash scripts/backup.sh /backups/$(date +\%Y\%m\%d) >> /var/log/crm-backup.log 2>&1
-```
-
-Проверка восстановления (раз в месяц):
+На бесплатных дисках данные **могут исчезнуть**. Дамп и файлы выгружайте наружу:
 
 ```bash
+# раз в день
+bash scripts/backup.sh /backups/$(date +%Y%m%d)
+# раз в месяц — проверка восстановления
 bash scripts/restore.sh /backups/последний
 bash scripts/verify_restore.sh /backups/последний
 ```
 
 **Backup без проверки restore — не backup.**
 
----
-
-## Шаг 5. Когда захотите «настоящий» сервер (VPS)
-
-1. VPS с Ubuntu + Docker
-2. `git clone` репозитория
-3. `cp .env.example .env` → заполнить
-4. `docker compose up -d`
-5. `alembic upgrade head` / первый старт создаст таблицы
-6. `bash scripts/restore.sh <backup>` если переносите данные
-7. `bash scripts/verify_restore.sh`
-8. HTTPS: Caddy / Traefik / nginx
-9. Сверка: количество контрагентов, договоров, протоколов, файлов
-
-Подробности — `docs/runbook-vps.md`.
+Retention: 7 daily · 4 weekly · 3 monthly.
 
 ---
 
-## Чек-лист перед «боевым» использованием
+## Проверка после запуска
 
-- [ ] `ADMIN_PASSWORD` сменён
-- [ ] `SECRET_KEY` — длинный случайный, не `CHANGE_ME`
-- [ ] HTTPS включён
-- [ ] Backup настроен и **restore проверен**
-- [ ] Файлы не только на ephemeral disk
-- [ ] Supabase / платформа: включён внешний экспорт БД
-
----
-
-## Ограничения free-тарифов (2026 — проверьте перед стартом)
-
-| Платформа | Риск |
-|-----------|------|
-| Render free | сервис засыпает, диск не persistent |
-| Railway | лимиты CPU/RAM/volume после trial |
-| Supabase free | может приостановить неактивный проект; auto-backup платный |
-
-Поэтому: **данные = Supabase + ежедневный внешний backup**, а хостинг — временный.
+1. `/health/live` → ok  
+2. `/health/ready` → ok (БД)  
+3. `/docs` → OpenAPI (staging)  
+4. `/login` → вход админом, `/dashboard` показывает роль `admin`  
+5. Создать контрагента через API/docs  
+6. `backup.sh` + `restore.sh` + `verify_restore.sh`
 
 ---
 
-## Быстрый старт «на столе» (без сервера)
+## Важно / ограничения
 
-```bash
-cd crm
-cp .env.example .env
-docker compose up
-```
-
-Frontend: http://localhost:3000 · API: http://localhost:8000/docs
+- Бесплатный хостинг — **временный слой**. Рабочие договоры/протоколы — только с внешним backup.
+- Файлы на Render Free **не персистентны**. Для тестов с загрузкой файлов — вариант B (volume) или S3-compatible.
+- Supabase Free: пауза после 1 недели без запросов, нет automatic backups.
+- `APP_ENV=production` отключает `/docs` и ставит `Secure` на cookie — так и надо на бою.
+- Перенос на VPS: `docs/runbook-vps.md`.

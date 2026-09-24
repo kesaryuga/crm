@@ -121,10 +121,13 @@ def login(payload: LoginIn, response: Response, db: Session = Depends(get_db)) -
     db.commit()
     db.refresh(user)
 
+    settings = get_settings()
+    secure = settings.app_env == "production" or settings.app_url.startswith("https")
     response.set_cookie(
-        key=get_settings().session_cookie_name,
+        key=settings.session_cookie_name,
         value=create_session_token(user.id),
         httponly=True,
+        secure=secure,
         samesite="lax",
         max_age=60 * 60 * 12,
     )

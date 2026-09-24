@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
 __pycache__/
 *.py[cod]
 .venv/
@@ -23,3 +24,7 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+*.tsbuildinfo
+gh-*.txt
+gh_start.py
+gh_device_push.py

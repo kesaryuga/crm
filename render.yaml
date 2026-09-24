@@ -1,0 +1,53 @@
+# Render Blueprint — тестовый бесплатный стек (Hobby/Free compute)
+# Внешняя БД: Supabase/Neon (free Postgres), НЕ Render Free Postgres (живёт 30 дней).
+# Файлы uploads на Free не переживают redeploy — для тестов без файлов / см. docs/deploy-free.md.
+
+services:
+  - type: web
+    name: crm-backend
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /health/live
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: APP_NAME
+        value: CRM
+      - key: TIMEZONE
+        value: Europe/Minsk
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: STORAGE_BACKEND
+        value: local
+      - key: STORAGE_LOCAL_PATH
+        value: /data/uploads
+      - key: MAX_UPLOAD_MB
+        value: "25"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOGIN_RATE_LIMIT_ENABLED
+        value: "true"
+
+  - type: web
+    name: crm-frontend
+    runtime: docker
+    rootDir: frontend
+    plan: free
+    envVars:
+      - key: API_URL
+        fromService:
+          name: crm-backend
+          type: web
+          property: host
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: crm-backend
+          type: web
+          property: host
