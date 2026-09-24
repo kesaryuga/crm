@@ -1,6 +1,6 @@
 # Render Blueprint — тестовый бесплатный стек (Hobby/Free compute)
-# Внешняя БД: Supabase/Neon (free Postgres), НЕ Render Free Postgres (живёт 30 дней).
-# Файлы uploads на Free не переживают redeploy — для тестов без файлов / см. docs/deploy-free.md.
+# Внешняя БД: Supabase (free Postgres). Не используйте Render Free Postgres (30 дней).
+# Файлы uploads на Free не переживают redeploy.
 
 services:
   - type: web
@@ -14,6 +14,10 @@ services:
         value: staging
       - key: APP_NAME
         value: CRM
+      - key: APP_URL
+        value: https://crm-frontend-h3zf.onrender.com
+      - key: API_URL
+        value: https://crm-backend-myq6.onrender.com
       - key: TIMEZONE
         value: Europe/Minsk
       - key: DATABASE_URL
@@ -42,12 +46,6 @@ services:
     plan: free
     envVars:
       - key: API_URL
-        fromService:
-          name: crm-backend
-          type: web
-          property: host
+        value: https://crm-backend-myq6.onrender.com
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          name: crm-backend
-          type: web
-          property: host
+        value: https://crm-backend-myq6.onrender.com
