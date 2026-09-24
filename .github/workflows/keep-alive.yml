@@ -1,0 +1,28 @@
+# Keep-alive: бесплатные сервисы (Render Free, Supabase Free) засыпают.
+# Пинг раз в 10 минут — держит их awake. URL задайте в секретах репозитория:
+#   BACKEND_URL   https://crm-backend.onrender.com
+#   FRONTEND_URL  https://crm-frontend.onrender.com
+name: keep-alive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Wake backend / frontend
+        run: |
+          set -e
+          backend="${{ secrets.BACKEND_URL }}"
+          frontend="${{ secrets.FRONTEND_URL }}"
+          for url in "$backend/health/live" "$frontend/" "$frontend/login"; do
+            [ -z "${url%%/*}" ] && continue
+            # resolve empty host (secrets not set)
+            case "$url" in
+              http://*|https://*) echo "PING $url"; curl -fsS -m 25 -o /dev/null -w "%{http_code}\n" "$url" || echo "fail $url" ;;
+            esac
+          done
