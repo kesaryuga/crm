@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>КИТ-лаб · CRM</title>
+<style>
+  :root {
+    --ink: #1c2430;
+    --paper: #f4f6f9;
+    --card: #ffffff;
+    --line: #d8dee7;
+    --muted: #6b778c;
+    --accent: #1a6fc4;
+    --accent-soft: #e7f2fb;
+    --ok: #1a7f4b;
+    --warn: #b86e00;
+    --danger: #c23b3b;
+    --sidebar: #0d2740;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--paper); color: var(--ink); min-height: 100vh;
+  }
+  button { font: inherit; cursor: pointer; }
+  input, select, textarea { font: inherit; }
+
+  .login-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(145deg, #eef3f8 0%, #f7faf9 50%, #e8f0f8 100%); padding: 24px;
+  }
+  .login-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 36px 32px; width: 100%; max-width: 420px;
+    box-shadow: 0 12px 40px rgba(13,39,64,.08);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .brand img { height: 44px; width: auto; }
+  .brand-text { font-weight: 700; font-size: 20px; letter-spacing: .2px; }
+  .brand-text small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; min-height: 44px; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: #fff;
+  }
+  .field textarea { min-height: 80px; resize: vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent;
+  }
+  .btn {
+    height: 44px; padding: 0 20px; border: none; border-radius: 8px;
+    background: var(--accent); color: #fff; font-weight: 600; transition: opacity .15s;
+  }
+  .btn:hover { opacity: .92; }
+  .btn-ghost {
+    background: transparent; color: var(--accent); border: 1px solid var(--line);
+    height: 36px; padding: 0 14px; border-radius: 8px; font-weight: 600;
+  }
+  .btn-full { width: 100%; }
+  .hint { margin-top: 14px; font-size: 13px; color: var(--muted); text-align: center; }
+  .hint b { color: var(--ink); }
+
+  .app { display: none; min-height: 100vh; }
+  .app.on { display: flex; }
+  .sidebar {
+    width: 240px; background: var(--sidebar); color: #c5d0ca;
+    padding: 18px 12px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px;
+  }
+  .sidebar .brand { color: #fff; padding: 0 8px 8px; margin-bottom: 12px; }
+  .sidebar .brand img { height: 36px; }
+  .sidebar .brand-text { font-size: 16px; }
+  .sidebar .brand-text small { color: #8aa8c4; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border-radius: 8px; border: none; background: transparent; color: inherit;
+    text-align: left; width: 100%; font-size: 14px;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.06); }
+  .nav-item.active { background: rgba(11,110,79,.35); color: #fff; }
+  .nav-section {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+    color: #7a93ab; padding: 14px 12px 6px;
+  }
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    height: 60px; background: var(--card); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px; padding: 0 24px;
+  }
+  .search {
+    flex: 1; max-width: 360px; height: 38px; border: 1px solid var(--line);
+    border-radius: 8px; padding: 0 12px; background: var(--paper);
+  }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+  }
+  .content { padding: 24px; overflow: auto; flex: 1; }
+  .page { display: none; }
+  .page.on { display: block; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px;
+  }
+  .stat .num { font-size: 28px; font-weight: 700; margin: 6px 0; }
+  .stat .lbl { font-size: 13px; color: var(--muted); }
+
+  .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+  .panel {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px;
+  }
+  .panel h2 { font-size: 15px; margin-bottom: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    text-align: left; font-size: 12px; color: var(--muted); font-weight: 600;
+    padding: 8px 10px; border-bottom: 1px solid var(--line);
+  }
+  td { padding: 11px 10px; border-bottom: 1px solid #eef1f5; }
+  tr:last-child td { border-bottom: none; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover { background: var(--accent-soft); }
+
+  .badge {
+    display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  }
+  .badge-draft { background: #eef1f5; color: var(--muted); }
+  .badge-active { background: #e6f6ed; color: var(--ok); }
+  .badge-wait { background: #fff4e0; color: var(--warn); }
+  .badge-done { background: var(--accent-soft); color: var(--accent); }
+  .cmt-btn {
+    background: transparent; border: 1px solid var(--line); border-radius: 999px;
+    font-size: 12px; padding: 2px 8px; color: var(--muted); margin-left: 6px;
+  }
+  .cmt-btn.has { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+  .wizard-steps { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .step {
+    padding: 8px 14px; border-radius: 999px; font-size: 13px;
+    background: #eef1f5; color: var(--muted); font-weight: 600;
+  }
+  .step.cur { background: var(--accent); color: #fff; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .actions { display: flex; gap: 10px; margin-top: 22px; }
+
+  /* Comments drawer */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(13,39,64,.35); display: none; z-index: 30;
+  }
+  .overlay.on { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100%);
+    background: var(--card); z-index: 40; display: none; flex-direction: column;
+    box-shadow: -8px 0 30px rgba(0,0,0,.12);
+  }
+  .drawer.on { display: flex; }
+  .drawer-head {
+    padding: 18px 20px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .drawer-head h3 { font-size: 16px; flex: 1; }
+  .drawer-head p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .drawer-body { flex: 1; overflow: auto; padding: 18px 20px; }
+  .drawer-foot { border-top: 1px solid var(--line); padding: 14px 20px; }
+  .thread { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .note {
+    border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--paper);
+  }
+  .note.reply { margin-left: 22px; background: var(--accent-soft); border-color: #cfe5dc; }
+  .note-meta {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 6px;
+    font-size: 12px; color: var(--muted);
+  }
+  .note-meta b { color: var(--ink); font-size: 13px; }
+  .role-tag {
+    font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    background: #e8ecf1; color: var(--muted);
+  }
+  .role-tag.exec { background: #fff4e0; color: var(--warn); }
+  .note-body { font-size: 14px; line-height: 1.5; }
+  .files-title {
+    font-size: 13px; font-weight: 700; margin: 18px 0 10px;
+    text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+  }
+  .file-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    border: 1px dashed var(--line); border-radius: 10px; margin-bottom: 8px; font-size: 14px;
+  }
+  .file-row .icon { font-size: 18px; }
+  .file-row .meta { flex: 1; }
+  .file-row .meta small { display: block; color: var(--muted); font-size: 12px; }
+  .dropzone {
+    border: 2px dashed var(--line); border-radius: 10px; padding: 18px; text-align: center;
+    color: var(--muted); font-size: 13px; background: var(--paper); margin-bottom: 8px;
+  }
+  .dropzone:hover { border-color: var(--accent); color: var(--accent); }
+  .composer { display: flex; flex-direction: column; gap: 8px; }
+  .composer textarea {
+    width: 100%; min-height: 72px; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 8px; resize: vertical;
+  }
+  .composer-row { display: flex; gap: 8px; align-items: center; }
+  .toast {
+    position: fixed; right: 24px; bottom: 24px; background: var(--ink); color: #fff;
+    padding: 14px 18px; border-radius: 10px; font-size: 14px; display: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2); max-width: 320px; z-index: 50;
+  }
+  .toast.on { display: block; }
+  @media (max-width: 900px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+    .grid-2, .form-grid { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="login">
+  <div class="login-card">
+    <div class="brand">
+      <img src="assets/image2.png" alt="КИТ-лаб" onerror="this.style.display='none'" />
+      <div class="brand-text">ООО «КИТ-лаб»<small>kit-lab.by · CRM</small></div>
+    </div>
+    <form id="login-form">
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" type="email" value="manager@kit-lab.by" required />
+      </div>
+      <div class="field">
+        <label for="pass">Пароль</label>
+        <input id="pass" type="password" value="demo" required />
+      </div>
+      <button class="btn btn-full" type="submit">Войти</button>
+    </form>
+    <p class="hint">Демо-вход: просто нажмите <b>«Войти»</b></p>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="assets/image2.png" alt="" onerror="this.style.display='none'" />
+      <div class="brand-text">КИТ-лаб<small>kit-lab.by</small></div>
+    </div>
+    <div class="nav-section">Работа</div>
+    <button class="nav-item active" data-page="home">Главная</button>
+    <button class="nav-item" data-page="tasks">Задачи</button>
+    <button class="nav-item" data-page="works">Испытания</button>
+    <div class="nav-section">CRM</div>
+    <button class="nav-item" data-page="clients">Контрагенты</button>
+    <button class="nav-item" data-page="objects">Объекты</button>
+    <div class="nav-section">Документы</div>
+    <button class="nav-item" data-page="contracts">Договоры</button>
+    <button class="nav-item" data-page="protocols">Протоколы</button>
+    <div class="nav-section">Справочники</div>
+    <button class="nav-item" data-page="equip">Оборудование</button>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <input class="search" placeholder="Поиск: контрагент, УНП, договор…" />
+      <div class="topbar-right">
+        <button class="btn-ghost" onclick="toast('Мастер создания — в следующих шагах')">+ Создать</button>
+        <div class="avatar">КЛ</div>
+        <button class="btn-ghost" onclick="logout()">Выйти</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <section class="page on" id="page-home">
+        <h1>Добрый день</h1>
+        <p class="sub">ООО «КИТ-лаб» · kit-lab.by · рабочий стол</p>
+        <div class="cards">
+          <div class="stat"><div class="lbl">Задачи сегодня</div><div class="num">5</div></div>
+          <div class="stat"><div class="lbl">Просрочено</div><div class="num" style="color:var(--danger)">2</div></div>
+          <div class="stat"><div class="lbl">Испытания сегодня</div><div class="num">3</div></div>
+          <div class="stat"><div class="lbl">Протоколы-черновики</div><div class="num">4</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel">
+            <h2>Мои задачи</h2>
+            <p class="sub" style="margin-bottom:12px">Нажмите на задачу — откроются комментарии и файлы</p>
+            <table>
+              <tbody>
+                <tr class="clickable" onclick='openDrawer("task","Задача","Сделать испытания: склад на Минской — 2 места, замеры: освещённость, заземление, температура")'>
+                  <td>Испытания склада, Минская 12 — 2 места</td>
+                  <td><span class="badge badge-wait">в работе</span><span class="cmt-btn has">3</span></td>
+                </tr>
+                <tr class="clickable" onclick='openDrawer("task","Задача","Позвонить по договору №12 — ООО «СтройСервис»")'>
+                  <td>Позвонить по договору №12</td>
+                  <td><span class="badge badge-draft">к выполнению</span><span class="cmt-btn has">1</span></td>
+                </tr>
+                <tr class="clickable" onclick='openDrawer("task","Задача","Поверка мультиметра Fluke 87V — срок 30.09.2026")'>
+                  <td>Поверка Fluke 87V</td>
+                  <td><span class="badge badge-wait">срок</span><span class="cmt-btn">0</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <h2>Требует внимания</h2>
+            <p style="font-size:14px;line-height:1.6">
+              Поверка <b>Fluke 87V</b> — до 30.09.2026<br/>
+              Договор <b>№8</b> — просрочена оплата<br/>
+              <b>2 задачи</b> просрочены
+            </p>
+            <div style="margin-top:16px">
+              <button class="btn-ghost" onclick="go('equip')">Оборудование →</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="page-tasks">
+        <h1>Задачи</h1>
+        <p class="sub">Комментарии и файлы — по клику на строку</p>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Задача</th><th>Исполнитель</th><th>Срок</th><th>Статус</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick='openDrawer("task","Испытания склада, Минская 12","Сделать испытания: 2 места. Измерения: освещённость рабочих мест, заземление корпусов, температура и влажность. Формы — 2 протокола.")'>
+                <td>Испытания склада, Минская 12<span class="cmt-btn has">3</span></td>
+                <td>Сергей К.</td><td>сегодня</td>
+                <td><span class="badge badge-wait">в работе</span></td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("task","Позвонить по договору №12","Уточнить готовность объекта к выезду. Контакт: Петров И.И. +375 29 111-22-33")'>
+                <td>Позвонить по договору №12<span class="cmt-btn has">1</span></td>
+                <td>Инна П.</td><td>сегодня 14:00</td>
+                <td><span class="badge badge-draft">к выполнению</span></td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("task","Проверить оплату по договору №8","Просрочен этап 2. Бухгалтерия: отправить повторный акт.")'>
+                <td>Проверить оплату по договору №8<span class="cmt-btn">0</span></td>
+                <td>Инна П.</td><td style="color:var(--danger)">вчера</td>
+                <td><span class="badge badge-wait">просрочено</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="page-works">
+        <h1>Испытания</h1>
+        <p class="sub">Выезды и работы · по клику — обсуждение и отчёты</p>
+        <div class="panel">
+          <table>
+            <thead><tr><th>№</th><th>Объект</th><th>Услуга</th><th>Статус</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick='openDrawer("work","Испытание №15","Склад, Минская 12 · Электролаборатория")'>
+                <td>15</td><td>Склад, Минская 12</td><td>Электролаборатория</td>
+                <td><span class="badge badge-wait">выполняется</span><span class="cmt-btn has">2</span></td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("work","Испытание №14","Цех №3, Гомель · Метеоизмерения")'>
+                <td>14</td><td>Цех №3, Гомель</td><td>Метеоизмерения</td>
+                <td><span class="badge badge-done">протокол готов</span><span class="cmt-btn has">1</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="page-clients">
+        <h1>Контрагенты</h1>
+        <p class="sub">По клику — комментарии: от кого пришёл, как общаться</p>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Наименование</th><th>УНП</th><th>Телефон</th><th>Ответственный</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick='openDrawer("client","ООО «СтройСервис»","УНП 190123456 · +375 29 111-22-33")'>
+                <td>ООО «СтройСервис»<span class="cmt-btn has">4</span></td>
+                <td>190123456</td><td>+375 29 111-22-33</td><td>Инна П.</td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("client","ООО «ТехЭкспертиза»","УНП 191987654 · +375 33 444-55-66")'>
+                <td>ООО «ТехЭкспертиза»<span class="cmt-btn has">2</span></td>
+                <td>191987654</td><td>+375 33 444-55-66</td><td>Анна М.</td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("client","ГУ «РЦАК»","тендер goszakupki.by № auc0003696120")'>
+                <td>ГУ «РЦАК»<span class="cmt-btn has">1</span></td>
+                <td>—</td><td>по тендеру</td><td>Инна П.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="page-objects">
+        <h1>Объекты</h1>
+        <p class="sub">Площадки испытаний</p>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Название</th><th>Контрагент</th><th>Адрес</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick='openDrawer("object","Склад, Минская 12","ООО «СтройСервис» · г. Минск, ул. Минская, 12")'>
+                <td>Склад, Минская 12<span class="cmt-btn has">1</span></td>
+                <td>ООО «СтройСервис»</td><td>г. Минск, ул. Минская, 12</td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("object","Цех №3","ЗАО «ГомельАгро» · г. Гомель, пр-т Ленина, 45")'>
+                <td>Цех №3</td><td>ЗАО «ГомельАгро»</td><td>г. Гомель, пр-т Ленина, 45</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="page-contracts">
+        <h1>Договоры и КП</h1>
+        <p class="sub">Номера — вручную, со сбросом года · без НДС · сумма прописью</p>
+        <div style="margin-bottom:16px">
+          <button class="btn" onclick="go('contract-new')">+ Новый договор / КП</button>
+        </div>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Номер</th><th>Дата</th><th>Контрагент</th><th>Сумма</th><th>Статус</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick='openDrawer("contract","КП б/н от 24.09.2026","ГУ «РЦАК» · тендер № auc0003696120 · Agilent 7890B · итого 2 180,00 BYN без НДС")'>
+                <td><b>КП б/н</b></td><td>24.09.2026</td><td>ГУ «РЦАК»</td><td>2 180,00 BYN</td>
+                <td><span class="badge badge-wait">на согласовании</span><span class="cmt-btn has">1</span></td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("contract","Договор №12","ООО «СтройСервис» · действует")'>
+                <td><b>№12</b></td><td>15.09.2026</td><td>ООО «СтройСервис»</td><td>4 800,00 BYN</td>
+                <td><span class="badge badge-active">действует</span><span class="cmt-btn has">2</span></td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("contract","Договор №11","ООО «ТехЭкспертиза» · выполнен")'>
+                <td><b>№11</b></td><td>02.09.2026</td><td>ООО «ТехЭкспертиза»</td><td>1 250,00 BYN</td>
+                <td><span class="badge badge-done">выполнен</span><span class="cmt-btn">0</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="page-contract-new">
+        <h1>Новый договор / КП</h1>
+        <p class="sub">Шаг 1 из 6</p>
+        <div class="wizard-steps">
+          <span class="step cur">1 Контрагент</span>
+          <span class="step">2 Услуги</span>
+          <span class="step">3 Условия</span>
+          <span class="step">4 Шаблон</span>
+          <span class="step">5 Проверка</span>
+          <span class="step">6 Генерация</span>
+        </div>
+        <div class="panel">
+          <div class="form-grid">
+            <div class="field">
+              <label>Номер (вручную, со сбросом года)</label>
+              <input value="13" />
+            </div>
+            <div class="field">
+              <label>Дата</label>
+              <input value="24.09.2026" />
+            </div>
+            <div class="field">
+              <label>Контрагент</label>
+              <select>
+                <option>ООО «СтройСервис»</option>
+                <option>ООО «ТехЭкспертиза»</option>
+                <option>ГУ «РЦАК»</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Объект</label>
+              <select>
+                <option>Склад, Минская 12</option>
+                <option>Цех №3, Гомель</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label>Первый комментарий (от кого пришло, как общаться)</label>
+              <textarea placeholder="Например: заявка с сайта kit-lab.by, общается Иванов, звонить после 14:00"></textarea>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn" onclick="toast('Дальше: услуги и сумма')">Далее</button>
+            <button class="btn-ghost" onclick="go('contracts')">Отмена</button>
+          </div>
+          <p class="hint" style="text-align:left;margin-top:14px">
+            Без НДС (организация не является плательщиком НДС). Итог — сумма прописью.
+            Word-шаблоны ваших договоров и КП подключим на шаге «Шаблон».
+          </p>
+        </div>
+      </section>
+
+      <section class="page" id="page-protocols">
+        <h1>Протоколы</h1>
+        <p class="sub">Данные + документы · по клику — обсуждение и вложения</p>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Номер</th><th>Тип</th><th>Объект</th><th>Статус</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick='openDrawer("protocol","Протокол №7","Электролаборатория · Цех №3, Гомель")'>
+                <td><b>№7</b></td><td>Электролаборатория</td><td>Цех №3, Гомель</td>
+                <td><span class="badge badge-active">сформирован</span><span class="cmt-btn has">1</span></td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("protocol","Протокол №6","Метеоизмерения · Склад, Минская 12")'>
+                <td><b>№6</b></td><td>Метеоизмерения</td><td>Склад, Минская 12</td>
+                <td><span class="badge badge-wait">черновик</span><span class="cmt-btn">0</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="page-equip">
+        <h1>Оборудование</h1>
+        <p class="sub">Приборы и поверки</p>
+        <div class="panel">
+          <table>
+            <thead><tr><th>Название</th><th>№</th><th>Поверка до</th><th>Статус</th></tr></thead>
+            <tbody>
+              <tr class="clickable" onclick='openDrawer("equip","Мультиметр Fluke 87V","Зав. № FL-90211 · поверка до 30.09.2026")'>
+                <td>Мультиметр Fluke 87V</td><td>FL-90211</td><td>30.09.2026</td>
+                <td><span class="badge badge-wait">скоро истекает</span></td>
+              </tr>
+              <tr class="clickable" onclick='openDrawer("equip","Газовый хроматограф Agilent 7890B","Зав. № DE19293027 · по КП для РЦАК")'>
+                <td>Agilent 7890B</td><td>DE19293027</td><td>по договору</td>
+                <td><span class="badge badge-done">обслуживание</span><span class="cmt-btn has">1</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Comments & files drawer -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer" aria-label="Комментарии и файлы">
+  <div class="drawer-head">
+    <div style="flex:1">
+      <h3 id="d-title">Запись</h3>
+      <p id="d-sub"></p>
+    </div>
+    <button class="btn-ghost" onclick="closeDrawer()">Закрыть</button>
+  </div>
+  <div class="drawer-body">
+    <div class="files-title">Комментарии и заметки</div>
+    <div class="thread" id="thread"></div>
+
+    <div class="files-title">Файлы (Word, PDF, отчёты)</div>
+    <div id="file-list"></div>
+    <label class="dropzone">
+      + Прикрепить файл (docx, pdf, xlsx, jpg)
+      <input type="file" id="file-input" multiple accept=".docx,.doc,.pdf,.xlsx,.xls,.jpg,.jpeg,.png" style="display:none" />
+    </label>
+  </div>
+  <div class="drawer-foot">
+    <div class="composer">
+      <textarea id="cmt-text" placeholder="Новый комментарий или заметка исполнителя…"></textarea>
+      <div class="composer-row">
+        <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="as-exec" /> Заметка исполнителя
+        </label>
+        <button class="btn" style="margin-left:auto;height:38px" onclick="addNote()">Отправить</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const seed = {
+    'client|ООО «СтройСервис»': [
+      { a: 'Инна П.', r: 'менеджер', d: '23.09.2026 10:12', t: 'Пришёл с сайта kit-lab.by через форму «Заказать испытания». Общаться с Петровым И.И., звонить после 14:00, на почту — редко.' },
+      { a: 'Анна М.', r: 'исполнитель', d: '23.09.2026 11:40', t: 'Принято. На объект пускают по паспорту, пропуск заказывать заранее.', reply: true },
+      { a: 'Инна П.', r: 'менеджер', d: '24.09.2026 09:05', t: 'От кого пришёл: рекомендация от ЗАО «ГомельАгро». Любят скидки при объёме от 3 услуг.' },
+    ],
+    'task|Испытания склада, Минская 12': [
+      { a: 'Инна П.', r: 'менеджер', d: '23.09.2026 08:30', t: 'Сделать испытания: 2 места (склад + бытовка). Измерения: освещённость, заземление, температура/влажность. Нужно 2 протокола.' },
+      { a: 'Сергей К.', r: 'исполнитель', d: '23.09.2026 12:15', t: 'Выехал на объект. 1 место замерил, по 2-му ждут доступ. Отчёт загружу вечером.', reply: true },
+      { a: 'Сергей К.', r: 'исполнитель', d: '23.09.2026 18:40', t: 'Оба места готовы. Протоколы поставлю в файлы.', reply: true },
+    ],
+    'task|Позвонить по договору №12': [
+      { a: 'Инна П.', r: 'менеджер', d: '23.09.2026 09:00', t: 'Контакт: Петров +375 29 111-22-33. Уточнить готовность объекта к выезду 25.09.' },
+    ],
+    'client|ГУ «РЦАК»': [
+      { a: 'Инна П.', r: 'менеджер', d: '24.09.2026 08:20', t: 'Тендер goszakupki.by № auc0003696120. КП уже отправили (Agilent 7890B). Общаться через комиссию, отвечать быстро.' },
+    ],
+    'contract|КП б/н от 24.09.2026': [
+      { a: 'Инна П.', r: 'менеджер', d: '24.09.2026 12:00', t: 'Итого 2 180,00 BYN без НДС (п.п.1.2 п.1 ст.326 НК РБ). Оплата по акту в течение 10 банковских дней.' },
+    ],
+  };
+
+  const filesSeed = {
+    'contract|КП б/н от 24.09.2026': [
+      { n: 'КП_3696120_Agilent_7890B.docx', m: 'Word · 24.09.2026 · Инна П.' },
+      { n: 'ТЗ_тендер_РЦАК.pdf', m: 'PDF · 23.09.2026 · Анна М.' },
+    ],
+    'task|Испытания склада, Минская 12': [
+      { n: 'Протокол_Минская12_место1.docx', m: 'Word · 23.09.2026 · Сергей К.' },
+    ],
+    'protocol|Протокол №7': [
+      { n: 'Протокол_№7_электро.docx', m: 'Word · 22.09.2026 · Сергей К.' },
+    ],
+  };
+
+  let curKey = '';
+  let extra = {};
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(window._tt);
+    window._tt = setTimeout(() => t.classList.remove('on'), 2800);
+  }
+
+  function go(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+    document.getElementById('page-' + page).classList.add('on');
+    document.querySelectorAll('.nav-item').forEach(b => {
+      const on = b.dataset.page === page || (page === 'contract-new' && b.dataset.page === 'contracts');
+      b.classList.toggle('active', on);
+    });
+  }
+
+  function logout() {
+    document.getElementById('app').classList.remove('on');
+    document.getElementById('login').style.display = 'flex';
+    closeDrawer();
+  }
+
+  function notesFor(key) {
+    return (seed[key] || []).concat(extra[key] || []);
+  }
+
+  function filesFor(key) {
+    return (filesSeed[key] || []).concat((extra[key + '|files'] || []));
+  }
+
+  function render() {
+    const th = document.getElementById('thread');
+    const notes = notesFor(curKey);
+    th.innerHTML = notes.length
+      ? notes.map(n => `
+        <div class="note ${n.reply ? 'reply' : ''}">
+          <div class="note-meta">
+            <b>${n.a}</b>
+            <span class="role-tag ${n.r === 'исполнитель' ? 'exec' : ''}">${n.r}</span>
+            <span>${n.d}</span>
+          </div>
+          <div class="note-body">${n.t}</div>
+        </div>`).join('')
+      : '<p class="sub">Пока нет комментариев. Напишите первый — например, от кого пришёл клиент.</p>';
+
+    const fl = document.getElementById('file-list');
+    const files = filesFor(curKey);
+    fl.innerHTML = files.length
+      ? files.map(f => `
+        <div class="file-row">
+          <div class="icon">📄</div>
+          <div class="meta">${f.n}<small>${f.m}</small></div>
+          <button class="btn-ghost" onclick="toast('Файл сохранится в карточке записи')">Скачать</button>
+        </div>`).join('')
+      : '<p class="sub" style="margin-bottom:8px">Файлов ещё нет. Можно приложить Word-отчёт, протокол или смету.</p>';
+  }
+
+  function openDrawer(kind, title, sub) {
+    curKey = kind + '|' + title;
+    document.getElementById('d-title').textContent = title;
+    document.getElementById('d-sub').textContent = sub;
+    render();
+    document.getElementById('overlay').classList.add('on');
+    document.getElementById('drawer').classList.add('on');
+  }
+
+  function closeDrawer() {
+    document.getElementById('overlay').classList.remove('on');
+    document.getElementById('drawer').classList.remove('on');
+  }
+
+  function addNote() {
+    const ta = document.getElementById('cmt-text');
+    const text = ta.value.trim();
+    if (!text) { toast('Напишите текст комментария'); return; }
+    const isExec = document.getElementById('as-exec').checked;
+    const now = new Date().toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    if (!extra[curKey]) extra[curKey] = [];
+    extra[curKey].push({
+      a: isExec ? 'Сергей К.' : 'Инна П.',
+      r: isExec ? 'исполнитель' : 'менеджер',
+      d: now,
+      t: text,
+      reply: isExec,
+    });
+    ta.value = '';
+    render();
+    toast('Комментарий сохранён');
+  }
+
+  document.getElementById('file-input').addEventListener('change', function () {
+    const list = extra[curKey + '|files'] = extra[curKey + '|files'] || [];
+    [...this.files].forEach(f => {
+      list.push({ n: f.name, m: (f.name.split('.').pop() || '').toUpperCase() + ' · только что · Инна П.' });
+    });
+    this.value = '';
+    render();
+    toast('Файлы приложены к записи');
+  });
+
+  document.getElementById('login-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').classList.add('on');
+  });
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => go(btn.dataset.page));
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDrawer();
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      document.querySelector('.search').focus();
+    }
+  });
+</script>
+</body>
+</html>
