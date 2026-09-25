@@ -48,6 +48,21 @@ class TaskOut(BaseModel):
     object_id: str | None = None
 
 
+class TaskPatch(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    task_type: str | None = None
+    assignee_user_id: str | None = None
+    due_at: datetime | None = None
+    priority: str | None = None
+    status: str | None = None
+    counterparty_id: str | None = None
+    object_id: str | None = None
+    contract_id: str | None = None
+    work_id: str | None = None
+    protocol_id: str | None = None
+
+
 class CompleteIn(BaseModel):
     comment: str = ""
 
@@ -141,7 +156,7 @@ def create_task(
                 user_id=payload.assignee_user_id,
                 type="task_assigned",
                 title="Новая задача",
-                body=payload.title,
+                body=payload.title or row.title,
                 entity_type="task",
                 entity_id=row.id,
             )
@@ -173,7 +188,7 @@ def get_task(
 @router.patch("/tasks/{tid}", response_model=TaskOut)
 def update_task(
     tid: str,
-    payload: TaskIn,
+    payload: TaskPatch,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> TaskOut:
@@ -181,7 +196,9 @@ def update_task(
     if not row or row.deleted_at is not None:
         raise _not_found()
     prev_assignee = row.assignee_user_id
-    for key, val in payload.model_dump().items():
+    for key, val in payload.model_dump(exclude_unset=True).items():
+        if val is not None and str(val).strip() == "":
+            val = None
         setattr(row, key, val)
     if (
         payload.assignee_user_id
@@ -193,7 +210,7 @@ def update_task(
                 user_id=payload.assignee_user_id,
                 type="task_assigned",
                 title="Вам назначена задача",
-                body=payload.title,
+                body=payload.title or row.title,
                 entity_type="task",
                 entity_id=row.id,
             )
@@ -433,7 +450,7 @@ def tasks_upcoming(
     stmt = select(Task).where(
         Task.deleted_at.is_(None),
         Task.due_at.is_not(None),
-        Task.status.notin_(("done", "cancelled")),
+        Task.status.notin_(("completed", "done", "cancelled")),
         Task.due_at >= now,
         Task.due_at <= until,
     )

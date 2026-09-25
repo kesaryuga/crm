@@ -115,7 +115,7 @@ export default function TasksPage() {
   }
 
   async function complete(id: string) {
-    await apiPost(`/tasks/${id}/complete`, { status: "done" });
+    await apiPost(`/tasks/${id}/complete`, {});
     await load();
   }
 
@@ -188,24 +188,15 @@ export default function TasksPage() {
             </div>,
             TASK_TYPES[t.task_type] || t.task_type,
             userName(t.assignee_user_id),
-            <Select
-              key="s"
-              value={t.status}
-              onChange={(e) => setTaskStatus(t.id, e.target.value)}
-              className="h-8 w-32"
-            >
-              {Object.entries(TASK_STATUSES).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </Select>,
+            <Badge key="s" tone={t.status === "completed" || t.status === "done" ? "ok" : t.is_overdue ? "danger" : "default"}>
+              {TASK_STATUSES[t.status] || t.status}
+            </Badge>,
             fmtDateTime(t.due_at),
             <div key="a" className="flex gap-1">
               <Button variant="secondary" onClick={() => setDelegateOpen(t)}>
                 Делегировать
               </Button>
-              {t.status !== "done" ? (
+              {t.status !== "completed" && t.status !== "done" && t.status !== "cancelled" ? (
                 <Button onClick={() => complete(t.id)}>Готово</Button>
               ) : (
                 <Badge tone="ok">✓</Badge>

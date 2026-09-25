@@ -45,6 +45,7 @@ export const TASK_TYPES: Record<string, string> = {
 export const TASK_STATUSES: Record<string, string> = {
   new: "Новая",
   in_progress: "В работе",
+  completed: "Выполнена",
   done: "Выполнена",
   cancelled: "Отменена",
 };
