@@ -2,33 +2,59 @@
 
 import { FormEvent, useState } from "react";
 
+function extractMessage(status: number, body: unknown): string {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return detail;
+  if (detail && typeof detail === "object" && "message" in detail) {
+    const m = (detail as { message?: unknown }).message;
+    if (typeof m === "string") return m;
+  }
+  if (status === 401) return "Неверный email или пароль";
+  if (status === 429) return "Слишком много попыток. Подождите минуту.";
+  if (status === 502 || status === 503 || status === 504) {
+    return "Сервис запускается — подождите 30 секунд и нажмите «Войти» ещё раз";
+  }
+  return `Не удалось войти (ошибка ${status})`;
+}
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("admin@kit-lab.by");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  async function attempt(body: string): Promise<Response> {
+    return fetch("/api/v1/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body,
+    });
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setLoading(true);
+    const payload = JSON.stringify({
+      email: email.trim(),
+      password: password,
+    });
     try {
-      const res = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
+      let res = await attempt(payload);
+      // Cold start on Render Free often returns 502 — retry twice
+      for (let i = 0; i < 2 && (res.status === 502 || res.status === 503); i++) {
+        await new Promise((r) => setTimeout(r, 2500));
+        res = await attempt(payload);
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        const message =
-          body?.detail?.message || body?.detail || "Не удалось войти";
-        setError(typeof message === "string" ? message : "Не удалось войти");
+        setError(extractMessage(res.status, body));
         return;
       }
       window.location.href = "/dashboard";
     } catch {
-      setError("Сервис просыпается — подождите 30 секунд и нажмите «Войти» ещё раз.");
+      setError("Сервис запускается — подождите 30 секунд и нажмите «Войти» ещё раз");
     } finally {
       setLoading(false);
     }
@@ -74,6 +100,9 @@ export default function LoginPage() {
             {error}
           </p>
         ) : null}
+        <p className="text-xs text-muted">
+          Тестовый вход: admin@kit-lab.by · пароль kitlab2026
+        </p>
       </form>
     </main>
   );
