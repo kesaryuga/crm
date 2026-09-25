@@ -88,6 +88,9 @@ export default function ContractPage() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [actOpen, setActOpen] = useState(false);
+  const [itemOpen, setItemOpen] = useState(false);
+  const [services, setServices] = useState<{ id: string; name: string; unit: string; base_price: string }[]>([]);
+  const [itemForm, setItemForm] = useState({ service_id: "", name_snapshot: "", unit_snapshot: "шт", quantity: "1", unit_price: "0" });
   const [actForm, setActForm] = useState(emptyAct);
   const [form, setForm] = useState<Partial<Contract>>({});
   const [saving, setSaving] = useState(false);
@@ -97,6 +100,8 @@ export default function ContractPage() {
     setError(null);
     try {
       const data = await apiGet<Contract>(`/contracts/${id}`);
+      const svcs = await apiGet<{ id: string; name: string; unit: string; base_price: string }[]>(`/services`).catch(() => []);
+      setServices(svcs);
       setContract(data);
       setForm(data);
       const cps = await apiGet<{ id: string; full_name: string }[]>(`/counterparties`).catch(() => []);
@@ -132,6 +137,26 @@ export default function ContractPage() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Не удалось сохранить");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addItem() {
+    setSaving(true);
+    try {
+      await apiPost(`/contracts/${id}/items`, {
+        service_id: itemForm.service_id || null,
+        name_snapshot: itemForm.name_snapshot,
+        unit_snapshot: itemForm.unit_snapshot,
+        quantity: itemForm.quantity || "1",
+        unit_price: itemForm.unit_price || "0",
+      });
+      setItemOpen(false);
+      setItemForm({ service_id: "", name_snapshot: "", unit_snapshot: "шт", quantity: "1", unit_price: "0" });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Не удалось добавить услугу");
     } finally {
       setSaving(false);
     }
@@ -178,7 +203,10 @@ export default function ContractPage() {
             <Button variant="secondary" onClick={() => setEditOpen(true)}>
               Редактировать
             </Button>
+            <>
+            <Button variant="secondary" onClick={() => setItemOpen(true)}>+ Услуга</Button>
             <Button onClick={() => setActOpen(true)}>+ Акт / часть</Button>
+          </>
           </>
         }
       />
@@ -379,6 +407,58 @@ export default function ContractPage() {
           </Button>
           <Button onClick={saveEdit} disabled={saving}>
             {saving ? "Сохраняем…" : "Сохранить"}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal open={itemOpen} title="Добавить услугу" onClose={() => setItemOpen(false)}>
+        <div className="grid gap-3">
+          <Field label="Из справочника услуг">
+            <Select
+              value={itemForm.service_id}
+              onChange={(e) => {
+                const s = services.find((x) => x.id === e.target.value);
+                setItemForm({
+                  ...itemForm,
+                  service_id: e.target.value,
+                  name_snapshot: s?.name || itemForm.name_snapshot,
+                  unit_snapshot: s?.unit || itemForm.unit_snapshot,
+                  unit_price: s?.base_price || itemForm.unit_price,
+                });
+              }}
+            >
+              <option value="">— вручную —</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Наименование *">
+            <Input
+              value={itemForm.name_snapshot}
+              onChange={(e) => setItemForm({ ...itemForm, name_snapshot: e.target.value })}
+            />
+          </Field>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="Кол-во">
+              <Input value={itemForm.quantity} onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })} />
+            </Field>
+            <Field label="Ед.">
+              <Input value={itemForm.unit_snapshot} onChange={(e) => setItemForm({ ...itemForm, unit_snapshot: e.target.value })} />
+            </Field>
+            <Field label="Цена">
+              <Input value={itemForm.unit_price} onChange={(e) => setItemForm({ ...itemForm, unit_price: e.target.value })} />
+            </Field>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setItemOpen(false)}>
+            Отмена
+          </Button>
+          <Button onClick={addItem} disabled={saving || !itemForm.name_snapshot.trim()}>
+            Добавить
           </Button>
         </div>
       </Modal>
