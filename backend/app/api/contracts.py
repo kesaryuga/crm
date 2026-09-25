@@ -64,6 +64,9 @@ class ContractIn(BaseModel):
     valid_to: datetime | None = None
     currency: str = "BYN"
     notes: str = ""
+    execution_days: int = 0
+    execution_term: str = ""
+    parts_count: int = 1
     template_id: str | None = None
 
 
@@ -85,7 +88,44 @@ class ContractOut(BaseModel):
     total_amount: Decimal
     notes: str
     amount_in_words: str = ""
+    execution_days: int = 0
+    execution_term: str = ""
+    parts_count: int = 1
     items: list[ItemOut] = []
+    acts: list[dict] = []
+
+
+class ActIn(BaseModel):
+    title: str = Field(min_length=1)
+    act_number: str = ""
+    act_date: datetime | None = None
+    due_date: datetime | None = None
+    amount: Decimal = Decimal("0.00")
+    status: str = "planned"
+    notes: str = ""
+
+
+class ActOut(ActIn):
+    id: str
+    contract_id: str
+
+
+def _acts_out(c) -> list[dict]:
+    acts = getattr(c, "acts", None) or []
+    return [
+        {
+            "id": a.id,
+            "contract_id": a.contract_id,
+            "title": a.title,
+            "act_number": a.act_number or "",
+            "act_date": a.act_date.isoformat() if a.act_date else None,
+            "due_date": a.due_date.isoformat() if a.due_date else None,
+            "amount": str(a.amount or 0),
+            "status": a.status or "planned",
+            "notes": a.notes or "",
+        }
+        for a in acts
+    ]
 
 
 def _item_out(i: ContractItem) -> ItemOut:
@@ -318,3 +358,63 @@ def add_item(
     db.commit()
     db.refresh(row)
     return _contract_out(row)
+
+
+@router.post("/contracts/{cid}/acts", response_model=ContractOut)
+def add_act(
+    cid: str,
+    payload: ActIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ContractOut:
+    from app.models import ContractAct
+
+    contract = db.get(Contract, cid)
+    if not contract:
+        raise _404()
+    act = ContractAct(contract_id=cid, **payload.model_dump())
+    db.add(act)
+    write_audit(
+        db, actor_user_id=user.id, action="create", entity_type="contract_act", entity_id=act.id
+    )
+    db.commit()
+    db.refresh(contract)
+    return _contract_out(contract)
+
+
+@router.patch("/contracts/{cid}/acts/{aid}", response_model=ContractOut)
+def update_act(
+    cid: str,
+    aid: str,
+    payload: ActIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ContractOut:
+    from app.models import ContractAct
+
+    act = db.get(ContractAct, aid)
+    if not act or act.contract_id != cid:
+        raise _404("Акт не найден")
+    for key, val in payload.model_dump().items():
+        setattr(act, key, val)
+    db.commit()
+    contract = db.get(Contract, cid)
+    return _contract_out(contract)
+
+
+@router.delete("/contracts/{cid}/acts/{aid}", response_model=ContractOut)
+def delete_act(
+    cid: str,
+    aid: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ContractOut:
+    from app.models import ContractAct
+
+    act = db.get(ContractAct, aid)
+    if not act or act.contract_id != cid:
+        raise _404("Акт не найден")
+    db.delete(act)
+    db.commit()
+    contract = db.get(Contract, cid)
+    return _contract_out(contract)

@@ -20,6 +20,31 @@ from app.core.db import Base, get_engine, get_sessionmaker
 from app.core.middleware import LoginRateLimitMiddleware, SecurityHeadersMiddleware
 
 
+def _ensure_contract_columns() -> None:
+    engine = get_engine()
+    cols = {
+        "execution_days": "INTEGER DEFAULT 0",
+        "execution_term": "VARCHAR(255) DEFAULT ''",
+        "parts_count": "INTEGER DEFAULT 1",
+    }
+    try:
+        with engine.begin() as conn:
+            existing = {
+                row[0]
+                for row in conn.exec_driver_sql(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'contracts'"
+                )
+            }
+            for name, ddl in cols.items():
+                if name not in existing:
+                    conn.exec_driver_sql(
+                        f"ALTER TABLE contracts ADD COLUMN IF NOT EXISTS {name} {ddl}"
+                    )
+    except Exception:
+        pass
+
+
 def _ensure_work_columns() -> None:
     """create_all не добавляет колонки в существующие таблицы — мигрируем мягко."""
     engine = get_engine()
@@ -53,6 +78,7 @@ def _ensure_work_columns() -> None:
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=get_engine())
     _ensure_work_columns()
+    _ensure_contract_columns()
     db = get_sessionmaker()()
     try:
         bootstrap_admin(db)

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -60,6 +60,9 @@ class Contract(Base):
     vat_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     total_amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
     notes: Mapped[str] = mapped_column(Text, default="")
+    execution_days: Mapped[int] = mapped_column(Integer, default=0)
+    execution_term: Mapped[str] = mapped_column(String(255), default="")
+    parts_count: Mapped[int] = mapped_column(Integer, default=1)
     template_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -70,6 +73,9 @@ class Contract(Base):
 
     items: Mapped[list[ContractItem]] = relationship(
         back_populates="contract", lazy="selectin", cascade="all, delete-orphan"
+    )
+    acts: Mapped[list[ContractAct]] = relationship(
+        lazy="selectin", cascade="all, delete-orphan", order_by="ContractAct.due_date"
     )
 
 
@@ -96,3 +102,22 @@ class ContractItem(Base):
     sort_order: Mapped[int] = mapped_column(default=0)
 
     contract: Mapped[Contract] = relationship(back_populates="items")
+
+
+class ContractAct(Base):
+    """Части / акты по договору."""
+
+    __tablename__ = "contract_acts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    contract_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("contracts.id", ondelete="CASCADE"), index=True
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    act_number: Mapped[str] = mapped_column(String(64), default="")
+    act_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=Decimal("0.00"))
+    status: Mapped[str] = mapped_column(String(32), default="planned")
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

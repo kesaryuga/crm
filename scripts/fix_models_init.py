@@ -1,4 +1,10 @@
-from app.models.contract import Contract, ContractAct, ContractItem, Service
+from pathlib import Path
+
+p = Path(r"C:\Users\Yury\XiaomiMiMoProjects\crm\backend\app\models\__init__.py")
+t = "from app.models.contract import Contract, ContractAct, ContractItem, Service\n" + \
+    Path(p).read_text(encoding="utf-8").split("from app.models.contract import", 1)[-1].split("\n", 1)[-1]
+# cleaner rewrite
+t = """from app.models.contract import Contract, ContractAct, ContractItem, Service
 from app.models.crm import Comment, Contact, Counterparty, SiteObject
 from app.models.document import DocumentTemplate, File, GeneratedDocument
 from app.models.equipment import Equipment, EquipmentVerification, ProtocolEquipment
@@ -35,3 +41,6 @@ __all__ = [
     "User",
     "Work",
 ]
+"""
+p.write_text(t, encoding="utf-8")
+print("init ok")
