@@ -29,7 +29,10 @@ type Task = {
   is_overdue: boolean;
   counterparty_id: string | null;
   assignee_user_id: string | null;
+  creator_user_id: string | null;
 };
+
+type User = { id: string; first_name: string; last_name: string; email: string; role_name: string | null };
 
 const emptyForm = {
   title: "",
@@ -39,10 +42,12 @@ const emptyForm = {
   status: "new",
   due_at: "",
   counterparty_id: "",
+  assignee_user_id: "",
 };
 
 export default function TasksPage() {
   const [items, setItems] = useState<Task[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -50,6 +55,16 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [overdue, setOverdue] = useState(false);
+  const [assignee, setAssignee] = useState("");
+  const [delegateOpen, setDelegateOpen] = useState<Task | null>(null);
+  const [delegateId, setDelegateId] = useState("");
+  const [delegateComment, setDelegateComment] = useState("");
+
+  const userName = (id: string | null) => {
+    if (!id) return "—";
+    const u = users.find((x) => x.id === id);
+    return u ? `${u.last_name} ${u.first_name}` : id.slice(0, 8);
+  };
 
   async function load() {
     setLoading(true);
@@ -58,8 +73,13 @@ export default function TasksPage() {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
       if (overdue) params.set("overdue", "true");
-      const data = await apiGet<Task[]>(`/tasks${params.toString() ? `?${params}` : ""}`);
-      setItems(data);
+      if (assignee) params.set("assignee_user_id", assignee);
+      const [list, u] = await Promise.all([
+        apiGet<Task[]>(`/tasks${params.toString() ? `?${params}` : ""}`),
+        apiGet<User[]>(`/users`).catch(() => []),
+      ]);
+      setItems(list);
+      setUsers(u);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -70,17 +90,17 @@ export default function TasksPage() {
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, overdue]);
+  }, [status, overdue, assignee]);
 
   async function create() {
     setSaving(true);
     try {
-      const payload = {
+      await apiPost("/tasks", {
         ...form,
         due_at: form.due_at ? new Date(form.due_at).toISOString() : null,
         counterparty_id: form.counterparty_id || null,
-      };
-      await apiPost("/tasks", payload);
+        assignee_user_id: form.assignee_user_id || null,
+      });
       setOpen(false);
       setForm(emptyForm);
       await load();
@@ -101,6 +121,17 @@ export default function TasksPage() {
     await load();
   }
 
+  async function delegate() {
+    if (!delegateOpen) return;
+    await apiPost(`/tasks/${delegateOpen.id}/delegate`, {
+      assignee_user_id: delegateId,
+      comment: delegateComment,
+    });
+    setDelegateOpen(null);
+    setDelegateComment("");
+    await load();
+  }
+
   return (
     <div>
       <PageHeader title="Задачи" subtitle="Звонки, встречи, документы, испытания" actions={<Button onClick={() => setOpen(true)}>+ Задача</Button>} />
@@ -114,10 +145,21 @@ export default function TasksPage() {
             </option>
           ))}
         </Select>
+        <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="w-52">
+          <option value="">Все исполнители</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.last_name} {u.first_name}
+            </option>
+          ))}
+        </Select>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={overdue} onChange={(e) => setOverdue(e.target.checked)} />
           Только просроченные
         </label>
+        <Link href="/planner" className="ml-auto text-sm text-accent">
+          Планёрка →
+        </Link>
       </div>
 
       {error ? <ErrorBox error={error} onRetry={load} /> : null}
@@ -127,8 +169,8 @@ export default function TasksPage() {
           columns={[
             { key: "t", label: "Задача" },
             { key: "ty", label: "Тип" },
+            { key: "as", label: "Исполнитель" },
             { key: "s", label: "Статус" },
-            { key: "p", label: "Приоритет" },
             { key: "d", label: "Срок" },
             { key: "a", label: "" },
           ]}
@@ -137,9 +179,12 @@ export default function TasksPage() {
               <Link href={`/tasks/${t.id}`} className="font-medium text-accent">
                 {t.title}
               </Link>
-              {t.is_overdue ? <Badge tone="danger">просрочено</Badge> : null}
+              {t.is_overdue ? (
+                <Badge tone="danger">просрочено</Badge>
+              ) : null}
             </div>,
             TASK_TYPES[t.task_type] || t.task_type,
+            userName(t.assignee_user_id),
             <Select
               key="s"
               value={t.status}
@@ -152,17 +197,17 @@ export default function TasksPage() {
                 </option>
               ))}
             </Select>,
-            PRIORITIES[t.priority] || t.priority,
             fmtDateTime(t.due_at),
-            t.status !== "done" ? (
-              <Button key="c" variant="secondary" onClick={() => complete(t.id)}>
-                Выполнить
+            <div key="a" className="flex gap-1">
+              <Button variant="secondary" onClick={() => setDelegateOpen(t)}>
+                Делегировать
               </Button>
-            ) : (
-              <Badge key="c" tone="ok">
-                ✓
-              </Badge>
-            ),
+              {t.status !== "done" ? (
+                <Button onClick={() => complete(t.id)}>Готово</Button>
+              ) : (
+                <Badge tone="ok">✓</Badge>
+              )}
+            </div>,
           ])}
           empty="Задач нет"
         />
@@ -178,6 +223,19 @@ export default function TasksPage() {
               {Object.entries(TASK_TYPES).map(([k, v]) => (
                 <option key={k} value={k}>
                   {v}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Исполнитель">
+            <Select
+              value={form.assignee_user_id}
+              onChange={(e) => setForm({ ...form, assignee_user_id: e.target.value })}
+            >
+              <option value="">— не назначен —</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.last_name} {u.first_name}
                 </option>
               ))}
             </Select>
@@ -215,6 +273,33 @@ export default function TasksPage() {
           </Button>
           <Button onClick={create} disabled={saving || !form.title.trim()}>
             {saving ? "Сохраняем…" : "Создать"}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal open={!!delegateOpen} title="Делегировать задачу" onClose={() => setDelegateOpen(null)}>
+        <p className="mb-3 text-sm text-muted">{delegateOpen?.title}</p>
+        <div className="grid gap-3">
+          <Field label="Исполнитель *">
+            <Select value={delegateId} onChange={(e) => setDelegateId(e.target.value)}>
+              <option value="">— выберите —</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.last_name} {u.first_name} ({u.role_name || "—"})
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Комментарий">
+            <Textarea value={delegateComment} onChange={(e) => setDelegateComment(e.target.value)} />
+          </Field>
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setDelegateOpen(null)}>
+            Отмена
+          </Button>
+          <Button onClick={delegate} disabled={!delegateId}>
+            Делегировать
           </Button>
         </div>
       </Modal>

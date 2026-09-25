@@ -30,6 +30,7 @@ const NAV: { section: string; items: { href: string; label: string }[] }[] = [
     section: "Работа",
     items: [
       { href: "/tasks", label: "Задачи" },
+      { href: "/planner", label: "Планёрка" },
       { href: "/works", label: "Испытания" },
     ],
   },
@@ -40,6 +41,10 @@ const NAV: { section: string; items: { href: string; label: string }[] }[] = [
       { href: "/protocols", label: "Протоколы" },
       { href: "/templates", label: "Шаблоны" },
     ],
+  },
+  {
+    section: "Управление",
+    items: [{ href: "/users", label: "Пользователи" }],
   },
   {
     section: "Справочники",

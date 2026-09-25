@@ -6,6 +6,7 @@ from app.api.equipment import router as equipment_router
 from app.api.health import router as health_router
 from app.api.io_tables import router as io_router
 from app.api.tasks import router as tasks_router
+from app.api.users import router as users_router
 from app.api.works import router as works_router
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "health_router",
     "io_router",
     "tasks_router",
+    "users_router",
     "works_router",
 ]

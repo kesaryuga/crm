@@ -1,22 +1,29 @@
-# CRM запущена — вход
+# CRM — быстрый доступ
 
-**Открывать:** https://crm-frontend-h3zf.onrender.com/login
+**UI:** https://crm-frontend-h3zf.onrender.com/login  
+**API:** https://crm-backend-myq6.onrender.com/docs
 
-| Поле | Значение |
-|------|----------|
-| Email | `admin@kit-lab.by` |
-| Пароль | `kitlab2026` |
+## Учётки
 
-Если «висит» — подождите 30 секунд (Render Free просыпается) и нажмите **Войти** ещё раз.
+| Роль | Email | Пароль |
+|------|-------|--------|
+| Администратор | admin@kit-lab.by | kitlab2026 |
+| **Руководитель** | boss@kit-lab.by | boss2026 |
+| Менеджер | manager@kit-lab.by | manager2026 |
+| Инженер | engineer@kit-lab.by | engineer2026 |
 
-## Ссылки
+## Разделы
 
-- CRM: https://crm-frontend-h3zf.onrender.com/login
-- API docs: https://crm-backend-myq6.onrender.com/docs
-- GitHub: https://github.com/kesaryuga/crm
+- Главная, Контрагенты, Задачи, **Планёрка**
+- Договоры, Протоколы, Испытания, Оборудование
+- Услуги, Шаблоны, **Пользователи** (роли/права)
 
-## Бесплатный стек
+## Задачи
 
-- Render Free (frontend + API) — keep-alive каждые 10 минут
-- Supabase Free (Postgres) — проект `crm`
-- Подробнее: `docs/deploy-free.md`, `docs/STATUS.md`
+- Назначение исполнителя, делегирование, уведомления
+- Просрочки, напоминания о сроках (72ч / 24ч)
+- Планёрка — неделя + ближайшие сроки
+
+## После деплоя
+
+Render → crm-frontend и crm-backend → **Manual Deploy → Deploy latest commit**

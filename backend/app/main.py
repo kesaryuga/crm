@@ -13,6 +13,7 @@ from app.api.equipment import router as equipment_router
 from app.api.health import router as health_router
 from app.api.io_tables import router as io_router
 from app.api.tasks import router as tasks_router
+from app.api.users import router as users_router
 from app.api.works import router as works_router
 from app.core.config import get_settings
 from app.core.db import Base, get_engine, get_sessionmaker
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
     app.include_router(works_router)
     app.include_router(equipment_router)
     app.include_router(io_router)
+    app.include_router(users_router)
     return app
 
 
