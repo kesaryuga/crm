@@ -32,25 +32,51 @@ async function proxy(req: NextRequest, prefix: string, path: string[]): Promise<
   const cookie = req.headers.get("cookie");
   if (cookie) headers.set("cookie", cookie);
   const contentType = req.headers.get("content-type");
-  if (contentType) headers.set("content-type", contentType);
+  if (contentType) {
+    headers.set("content-type", contentType);
+  }
 
   const hasBody = req.method !== "GET" && req.method !== "HEAD";
-  const init: RequestInit = { method: req.method, headers };
+  let body: string | undefined;
   if (hasBody) {
-    init.body = await req.arrayBuffer();
+    body = await req.text();
+    if (body && !headers.has("content-type")) {
+      headers.set("content-type", "application/json");
+    }
+    // FastAPI needs an explicit content-length
+    if (body) {
+      headers.set("content-length", String(new TextEncoder().encode(body).length));
+    }
   }
 
   try {
-    const upstream = await fetch(url, init);
-    const body = await upstream.arrayBuffer();
+    const upstream = await fetch(url, {
+      method: req.method,
+      headers,
+      body: hasBody ? body || undefined : undefined,
+      redirect: "manual",
+    });
+
+    const text = await upstream.text();
     const responseHeaders = new Headers();
-    const setCookie = upstream.headers.getSetCookie?.() ?? [];
-    for (const value of setCookie) {
+    for (const [key, value] of upstream.headers.entries()) {
+      if (key === "content-encoding" || key === "transfer-encoding" || key === "content-length") {
+        continue;
+      }
+      responseHeaders.set(key, value);
+    }
+    // Preserve cookies from backend
+    const setCookies = typeof upstream.headers.getSetCookie === "function"
+      ? upstream.headers.getSetCookie()
+      : [];
+    for (const value of setCookies) {
       responseHeaders.append("set-cookie", value);
     }
-    const ct = upstream.headers.get("content-type");
-    if (ct) responseHeaders.set("content-type", ct);
-    return new NextResponse(body, {
+    if (!responseHeaders.has("content-type")) {
+      responseHeaders.set("content-type", "application/json; charset=utf-8");
+    }
+
+    return new NextResponse(text, {
       status: upstream.status,
       headers: responseHeaders,
     });

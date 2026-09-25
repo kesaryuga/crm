@@ -242,6 +242,26 @@ def create_protocol_type(
     )
 
 
+@router.get("/protocols", response_model=list[ProtocolOut])
+def list_protocols(
+    q: str = "",
+    counterparty_id: str | None = None,
+    status: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[ProtocolOut]:
+    stmt = select(Protocol).order_by(Protocol.protocol_date.desc())
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(Protocol.number.ilike(like))
+    if counterparty_id:
+        stmt = stmt.where(Protocol.counterparty_id == counterparty_id)
+    if status:
+        stmt = stmt.where(Protocol.status == status)
+    rows = db.scalars(stmt.limit(500)).all()
+    return [ProtocolOut.model_validate(r, from_attributes=True) for r in rows]
+
+
 @router.post("/protocols", response_model=ProtocolOut)
 def create_protocol(
     payload: ProtocolIn,

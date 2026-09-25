@@ -93,7 +93,9 @@ def test_api_number_conflict(client) -> None:
 
 
 def test_login_rate_limit() -> None:
-    for _ in range(10):
+    from app.core.middleware import _LOGIN_LIMIT
+
+    for _ in range(_LOGIN_LIMIT):
         assert check_login_rate("ip-test") is True
     assert check_login_rate("ip-test") is False
     assert check_login_rate("ip-other") is True

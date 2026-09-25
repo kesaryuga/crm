@@ -1,0 +1,47 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e6]:
+    - navigation [ref=e8]:
+      - link [ref=e11] [cursor=pointer]:
+        - /url: https://supabase.com
+        - img "Supabase Logo" [ref=e12]
+      - link "Documentation" [ref=e14] [cursor=pointer]:
+        - /url: https://supabase.com/docs
+    - main [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Welcome back" [level=1] [ref=e24]
+          - heading "Sign in to your account" [level=2] [ref=e25]
+        - generic [ref=e26]:
+          - button "Continue with GitHub" [ref=e29] [cursor=pointer]
+          - button "Continue with ChatGPT" [ref=e35] [cursor=pointer]
+          - link "Continue with SSO" [ref=e41] [cursor=pointer]:
+            - /url: /dashboard/sign-in-sso?returnTo=%2Forg
+          - generic [ref=e47]: or
+          - generic [ref=e52]:
+            - generic [ref=e54]:
+              - generic [ref=e55]: Email
+              - textbox "Email" [ref=e60]:
+                - /placeholder: you@example.com
+            - generic [ref=e61]:
+              - generic [ref=e63]:
+                - generic [ref=e64]: Password
+                - generic [ref=e69]:
+                  - textbox "Password" [ref=e70]:
+                    - /placeholder: ••••••••
+                  - button "Show password" [ref=e71] [cursor=pointer]
+              - link "Forgot password?" [ref=e76] [cursor=pointer]:
+                - /url: /dashboard/forgot-password?returnTo=%2Forg
+            - button "Sign in" [ref=e79] [cursor=pointer]
+        - generic [ref=e81]:
+          - text: Don’t have an account?
+          - link "Sign up" [ref=e82] [cursor=pointer]:
+            - /url: /dashboard/sign-up?returnTo=%2Fnew
+      - paragraph [ref=e84]:
+        - text: By continuing, you agree to Supabase’s
+        - link "Terms of Service" [ref=e85] [cursor=pointer]:
+          - /url: https://supabase.com/terms
+        - text: and
+        - link "Privacy Policy" [ref=e86] [cursor=pointer]:
+          - /url: https://supabase.com/privacy
+        - text: ", and to receive periodic emails with updates."
+  - alert [ref=e87]: Supabase

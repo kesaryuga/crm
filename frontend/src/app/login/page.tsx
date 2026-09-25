@@ -36,13 +36,9 @@ export default function LoginPage() {
     event.preventDefault();
     setError(null);
     setLoading(true);
-    const payload = JSON.stringify({
-      email: email.trim(),
-      password: password,
-    });
+    const payload = JSON.stringify({ email: email.trim(), password });
     try {
       let res = await attempt(payload);
-      // Cold start on Render Free often returns 502 — retry twice
       for (let i = 0; i < 2 && (res.status === 502 || res.status === 503); i++) {
         await new Promise((r) => setTimeout(r, 2500));
         res = await attempt(payload);
@@ -100,9 +96,7 @@ export default function LoginPage() {
             {error}
           </p>
         ) : null}
-        <p className="text-xs text-muted">
-          Тестовый вход: admin@kit-lab.by · пароль kitlab2026
-        </p>
+        <p className="text-xs text-muted">Тестовый вход: admin@kit-lab.by · kitlab2026</p>
       </form>
     </main>
   );
