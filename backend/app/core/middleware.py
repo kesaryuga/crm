@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config import get_settings
 
-_LOGIN_LIMIT = 10
+_LOGIN_LIMIT = 30
 _LOGIN_WINDOW = 60.0
 _hits: dict[str, deque[float]] = defaultdict(deque)
 _lock = Lock()

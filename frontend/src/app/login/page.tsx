@@ -28,7 +28,7 @@ export default function LoginPage() {
       }
       window.location.href = "/dashboard";
     } catch {
-      setError("Сеть недоступна. Попробуйте ещё раз.");
+      setError("Сервис просыпается — подождите 30 секунд и нажмите «Войти» ещё раз.");
     } finally {
       setLoading(false);
     }
