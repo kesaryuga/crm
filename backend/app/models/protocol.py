@@ -36,6 +36,14 @@ class Work(Base):
     )
     status: Mapped[str] = mapped_column(String(32), default="planned", index=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+    # карточка испытания
+    test_type: Mapped[str] = mapped_column(String(64), default="", index=True)
+    address: Mapped[str] = mapped_column(String(500), default="")
+    parameters_count: Mapped[int] = mapped_column(Integer, default=0)
+    sample_count: Mapped[int] = mapped_column(Integer, default=0)
+    method: Mapped[str] = mapped_column(String(255), default="")
+    contact_person: Mapped[str] = mapped_column(String(255), default="")
+    contact_phone: Mapped[str] = mapped_column(String(64), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

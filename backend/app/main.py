@@ -20,9 +20,39 @@ from app.core.db import Base, get_engine, get_sessionmaker
 from app.core.middleware import LoginRateLimitMiddleware, SecurityHeadersMiddleware
 
 
+def _ensure_work_columns() -> None:
+    """create_all не добавляет колонки в существующие таблицы — мигрируем мягко."""
+    engine = get_engine()
+    cols = {
+        "test_type": "VARCHAR(64) DEFAULT ''",
+        "address": "VARCHAR(500) DEFAULT ''",
+        "parameters_count": "INTEGER DEFAULT 0",
+        "sample_count": "INTEGER DEFAULT 0",
+        "method": "VARCHAR(255) DEFAULT ''",
+        "contact_person": "VARCHAR(255) DEFAULT ''",
+        "contact_phone": "VARCHAR(64) DEFAULT ''",
+    }
+    try:
+        with engine.begin() as conn:
+            existing = {
+                row[0]
+                for row in conn.exec_driver_sql(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'works'"
+                )
+            }
+            for name, ddl in cols.items():
+                if name not in existing:
+                    conn.exec_driver_sql(f"ALTER TABLE works ADD COLUMN IF NOT EXISTS {name} {ddl}")
+    except Exception:
+        pass
+
+
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=get_engine())
+    _ensure_work_columns()
     db = get_sessionmaker()()
     try:
         bootstrap_admin(db)
