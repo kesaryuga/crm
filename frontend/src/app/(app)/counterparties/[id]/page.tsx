@@ -13,6 +13,7 @@ import {
   Input,
   Modal,
   PageHeader,
+  Select,
   Spinner,
   Table,
   Textarea,
@@ -268,7 +269,16 @@ export default function CounterpartyPage() {
             <Input value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </Field>
           <Field label="Статус">
-            <Input value={form.status || ""} onChange={(e) => setForm({ ...form, status: e.target.value })} />
+            <Select
+              value={form.status || "active"}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+            >
+              {Object.entries(CP_STATUSES).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </Select>
           </Field>
           <Field label="Юр. адрес">
             <Input value={form.legal_address || ""} onChange={(e) => setForm({ ...form, legal_address: e.target.value })} />

@@ -48,6 +48,7 @@ const emptyForm = {
 export default function TasksPage() {
   const [items, setItems] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [counterparties, setCounterparties] = useState<{ id: string; full_name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -74,12 +75,14 @@ export default function TasksPage() {
       if (status) params.set("status", status);
       if (overdue) params.set("overdue", "true");
       if (assignee) params.set("assignee_user_id", assignee);
-      const [list, u] = await Promise.all([
+      const [list, u, cps] = await Promise.all([
         apiGet<Task[]>(`/tasks${params.toString() ? `?${params}` : ""}`),
         apiGet<User[]>(`/users`).catch(() => []),
+        apiGet<{ id: string; full_name: string }[]>(`/counterparties`).catch(() => []),
       ]);
       setItems(list);
       setUsers(u);
+      setCounterparties(cps);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
@@ -256,12 +259,18 @@ export default function TasksPage() {
               onChange={(e) => setForm({ ...form, due_at: e.target.value })}
             />
           </Field>
-          <Field label="ID контрагента (необязательно)">
-            <Input
+          <Field label="Контрагент (необязательно)">
+            <Select
               value={form.counterparty_id}
               onChange={(e) => setForm({ ...form, counterparty_id: e.target.value })}
-              placeholder="можно оставить пустым"
-            />
+            >
+              <option value="">— без контрагента —</option>
+              {counterparties.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name}
+                </option>
+              ))}
+            </Select>
           </Field>
         </div>
         <Field label="Описание">

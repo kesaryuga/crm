@@ -106,7 +106,34 @@ def create_task(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> TaskOut:
-    row = Task(**payload.model_dump(), creator_user_id=user.id)
+    data = payload.model_dump()
+    fk_keys = (
+        "counterparty_id",
+        "object_id",
+        "contract_id",
+        "work_id",
+        "protocol_id",
+        "assignee_user_id",
+    )
+    for key in fk_keys:
+        val = data.get(key)
+        if val is not None and str(val).strip() == "":
+            data[key] = None
+        elif val is not None:
+            data[key] = str(val).strip()
+    if data.get("counterparty_id"):
+        from app.models import Counterparty
+
+        exists = db.get(Counterparty, data["counterparty_id"])
+        if not exists:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "BAD_COUNTERPARTY",
+                    "message": "Контрагент не найден — выберите из списка",
+                },
+            )
+    row = Task(**data, creator_user_id=user.id)
     db.add(row)
     if payload.assignee_user_id and payload.assignee_user_id != user.id:
         db.add(
