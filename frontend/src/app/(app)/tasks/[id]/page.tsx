@@ -15,6 +15,7 @@ import {
   Spinner,
   Textarea,
 } from "@/components/ui";
+import Comments from "@/components/Comments";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { PRIORITIES, TASK_STATUSES, TASK_TYPES, fmtDateTime } from "@/lib/format";
 
@@ -117,6 +118,10 @@ export default function TaskPage() {
             </div>
           </dl>
         </Card>
+      </div>
+
+      <div className="mt-4">
+        <Comments entityType="task" entityId={id} />
       </div>
     </div>
   );

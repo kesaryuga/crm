@@ -17,6 +17,7 @@ import {
   Table,
   Textarea,
 } from "@/components/ui";
+import Comments from "@/components/Comments";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import { CONTRACT_STATUSES, fmtDate, fmtMoney } from "@/lib/format";
 
@@ -502,6 +503,10 @@ export default function ContractPage() {
           </Button>
         </div>
       </Modal>
+
+      <div className="mt-4">
+        <Comments entityType="contract" entityId={id} />
+      </div>
     </div>
   );
 }

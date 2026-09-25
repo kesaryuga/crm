@@ -81,6 +81,7 @@ class CommentOut(BaseModel):
     body: str
     is_executor_note: bool
     author_user_id: str | None
+    created_at: datetime | None = None
 
 
 def _cp_out(row: Counterparty) -> CounterpartyOut:
@@ -109,6 +110,7 @@ def _cp_out(row: Counterparty) -> CounterpartyOut:
 def _cmt_out(c: Comment) -> CommentOut:
     return CommentOut(
         id=c.id,
+        created_at=c.created_at,
         entity_type=c.entity_type,
         entity_id=c.entity_id,
         body=c.body,
@@ -276,6 +278,27 @@ def list_contacts(
         for r in rows
     ]
 
+
+
+@router.patch("/objects/{oid}", response_model=ObjectOut)
+def update_object(
+    oid: str,
+    payload: ObjectIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ObjectOut:
+    row = db.get(SiteObject, oid)
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "NOT_FOUND", "message": "Объект не найден"},
+        )
+    for key, val in payload.model_dump(exclude={"counterparty_id"}).items():
+        setattr(row, key, val)
+    write_audit(db, actor_user_id=user.id, action="update", entity_type="object", entity_id=row.id)
+    db.commit()
+    db.refresh(row)
+    return ObjectOut.model_validate(row, from_attributes=True)
 
 @router.post("/objects", response_model=ObjectOut)
 def create_object(

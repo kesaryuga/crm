@@ -18,6 +18,7 @@ import {
   Table,
   Textarea,
 } from "@/components/ui";
+import Comments from "@/components/Comments";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { CP_STATUSES, fmtDate, fmtDateTime } from "@/lib/format";
 
@@ -344,6 +345,10 @@ export default function CounterpartyPage() {
           </Button>
         </div>
       </Modal>
+
+      <div className="mt-4">
+        <Comments entityType="counterparty" entityId={id} />
+      </div>
     </div>
   );
 }
