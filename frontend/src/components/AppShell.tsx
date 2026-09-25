@@ -44,7 +44,10 @@ const NAV: { section: string; items: { href: string; label: string }[] }[] = [
   },
   {
     section: "Управление",
-    items: [{ href: "/users", label: "Пользователи" }],
+    items: [
+      { href: "/users", label: "Пользователи" },
+      { href: "/roles", label: "Роли и права" },
+    ],
   },
   {
     section: "Справочники",
