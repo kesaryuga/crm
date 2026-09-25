@@ -17,7 +17,7 @@ import {
   Table,
   Textarea,
 } from "@/components/ui";
-import Comments from "@/components/Comments";
+import Comments, { CommentsInline } from "@/components/Comments";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/lib/api";
 import { CONTRACT_STATUSES, fmtDate, fmtMoney } from "@/lib/format";
 
@@ -273,8 +273,11 @@ export default function ContractPage() {
           </dl>
         </Card>
 
-        <Card title="Комментарий">
-          <p className="text-sm whitespace-pre-wrap">{contract.notes || "—"}</p>
+        <Card title="Комментарии">
+          <CommentsInline entityType="contract" entityId={contract.id} limit={5} />
+          {contract.notes ? (
+            <p className="mt-2 text-sm text-muted">Заметки договора: {contract.notes}</p>
+          ) : null}
         </Card>
 
         <Card title="Документы">

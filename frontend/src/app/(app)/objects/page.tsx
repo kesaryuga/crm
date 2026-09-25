@@ -11,10 +11,9 @@ import {
   PageHeader,
   Select,
   Spinner,
-  Table,
   Textarea,
 } from "@/components/ui";
-import Comments from "@/components/Comments";
+import { CommentsInline } from "@/components/Comments";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 
 type Obj = {
@@ -42,7 +41,6 @@ export default function ObjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [editObj, setEditObj] = useState<Obj | null>(null);
-  const [commentObj, setCommentObj] = useState<Obj | null>(null);
   const [form, setForm] = useState({
     counterparty_id: "",
     name: "",
@@ -109,41 +107,45 @@ export default function ObjectsPage() {
     <div>
       <PageHeader
         title="Объекты"
-        subtitle="Места проведения работ"
+        subtitle="Места проведения работ · комментарии сразу видны"
         actions={<Button onClick={() => setOpen(true)}>+ Объект</Button>}
       />
       {error ? <ErrorBox error={error} onRetry={load} /> : null}
       {loading ? <Spinner /> : null}
       {!loading ? (
-        <Table
-          columns={[
-            { key: "n", label: "Название" },
-            { key: "a", label: "Адрес" },
-            { key: "c", label: "Контрагент" },
-            { key: "s", label: "Статус" },
-            { key: "x", label: "" },
-          ]}
-          rows={items.map((o) => [
-            <div key={o.id}>
-              <div className="font-medium">{o.name}</div>
-              <div className="text-xs text-muted">{o.phone || ""}</div>
-            </div>,
-            o.address || "—",
-            names[o.counterparty_id] || o.counterparty_id,
-            <Badge key="s" tone={o.status === "active" ? "ok" : "default"}>
-              {STATUSES.find((s) => s.value === o.status)?.label || o.status}
-            </Badge>,
-            <div key="x" className="flex gap-1">
-              <Button variant="secondary" onClick={() => setEditObj(o)}>
-                Изменить
-              </Button>
-              <Button variant="ghost" onClick={() => setCommentObj(o)}>
-                💬
-              </Button>
-            </div>,
-          ])}
-          empty="Объектов нет"
-        />
+        <div className="space-y-3">
+          {!items.length ? (
+            <div className="rounded-lg border border-dashed border-line bg-white px-4 py-10 text-center text-sm text-muted">
+              Объектов нет
+            </div>
+          ) : null}
+          {items.map((o) => (
+            <div key={o.id} className="rounded-xl border border-line bg-white p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-base font-semibold">{o.name}</div>
+                  <div className="text-sm text-muted">
+                    {o.address || "адрес не указан"}
+                    {o.phone ? ` · ${o.phone}` : ""}
+                  </div>
+                  <div className="text-sm">{names[o.counterparty_id] || o.counterparty_id}</div>
+                  {o.description ? <div className="mt-1 text-sm">{o.description}</div> : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge tone={o.status === "active" ? "ok" : "default"}>
+                    {STATUSES.find((s) => s.value === o.status)?.label || o.status}
+                  </Badge>
+                  <Button variant="secondary" onClick={() => setEditObj(o)}>
+                    Изменить
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3">
+                <CommentsInline entityType="object" entityId={o.id} limit={1} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : null}
 
       <Modal open={open} title="Новый объект" onClose={() => setOpen(false)}>
@@ -218,15 +220,6 @@ export default function ObjectsPage() {
           </Button>
           <Button onClick={saveEdit}>Сохранить</Button>
         </div>
-      </Modal>
-
-      <Modal
-        open={!!commentObj}
-        title={`Комментарии — ${commentObj?.name || ""}`}
-        onClose={() => setCommentObj(null)}
-        wide
-      >
-        {commentObj ? <Comments entityType="object" entityId={commentObj.id} title="Комментарии к объекту" /> : null}
       </Modal>
     </div>
   );

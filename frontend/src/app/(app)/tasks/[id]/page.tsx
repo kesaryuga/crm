@@ -15,7 +15,7 @@ import {
   Spinner,
   Textarea,
 } from "@/components/ui";
-import Comments from "@/components/Comments";
+import Comments, { CommentsInline } from "@/components/Comments";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { PRIORITIES, TASK_STATUSES, TASK_TYPES, fmtDateTime } from "@/lib/format";
 
@@ -101,6 +101,9 @@ export default function TaskPage() {
           {TASK_STATUSES[task.status] || task.status}
         </Badge>
         {task.is_overdue ? <Badge tone="danger">просрочено</Badge> : null}
+      </div>
+      <div className="mb-4">
+        <CommentsInline entityType="task" entityId={task.id} limit={5} />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Описание">

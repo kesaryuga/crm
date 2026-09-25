@@ -18,7 +18,7 @@ import {
   Table,
   Textarea,
 } from "@/components/ui";
-import Comments from "@/components/Comments";
+import Comments, { CommentsInline } from "@/components/Comments";
 import { apiGet, apiPatch, apiPost } from "@/lib/api";
 import { CP_STATUSES, fmtDate, fmtDateTime } from "@/lib/format";
 
@@ -149,6 +149,10 @@ export default function CounterpartyPage() {
             {t}
           </button>
         ))}
+      </div>
+
+      <div className="mb-4">
+        <CommentsInline entityType="counterparty" entityId={cp.id} limit={3} />
       </div>
 
       {tab === "Обзор" ? (

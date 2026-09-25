@@ -15,31 +15,30 @@ export type CommentRow = {
   created_at?: string;
 };
 
-export default function Comments({
+export function CommentsInline({
   entityType,
   entityId,
-  title = "Комментарии",
+  limit = 2,
 }: {
   entityType: string;
   entityId: string;
-  title?: string;
+  limit?: number;
 }) {
   const [items, setItems] = useState<CommentRow[]>([]);
+  const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
-    setError(null);
     try {
       const data = await apiGet<CommentRow[]>(
         `/comments?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`,
       );
       setItems(Array.isArray(data) ? data : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Ошибка");
+    } catch {
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -62,43 +61,71 @@ export default function Comments({
       });
       setBody("");
       await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Не удалось сохранить");
+      setOpen(true);
     } finally {
       setSaving(false);
     }
   }
 
+  const shown = open ? items : items.slice(0, limit);
+
+  return (
+    <div className="rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2 text-sm">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+          Комментарии{items.length ? ` · ${items.length}` : ""}
+        </span>
+        {items.length > limit ? (
+          <button
+            type="button"
+            className="text-xs text-accent underline"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? "Свернуть" : `Показать все (${items.length})`}
+          </button>
+        ) : null}
+      </div>
+      {loading ? <span className="text-xs text-muted">…</span> : null}
+      {!loading && !items.length ? (
+        <p className="text-xs text-muted">Комментариев нет — можно добавить ниже</p>
+      ) : null}
+      <ul className="space-y-1">
+        {shown.map((c) => (
+          <li key={c.id} className="rounded bg-white/70 px-2 py-1">
+            <div className="whitespace-pre-wrap">{c.body}</div>
+            <div className="text-[11px] text-muted">{fmtDateTime(c.created_at)}</div>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex gap-2">
+        <Textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Комментарий…"
+          className="min-h-[48px] flex-1 bg-white"
+        />
+        <Button onClick={add} disabled={saving || !body.trim()} className="self-end">
+          {saving ? "…" : "Отправить"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function Comments({
+  entityType,
+  entityId,
+  title = "Комментарии",
+}: {
+  entityType: string;
+  entityId: string;
+  title?: string;
+}) {
   return (
     <section className="rounded-xl border border-line bg-white">
       <header className="border-b border-line px-4 py-3 text-sm font-semibold">{title}</header>
-      <div className="space-y-3 p-4">
-        <div className="flex flex-col gap-2">
-          <Textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Написать комментарий…"
-            className="min-h-[72px]"
-          />
-          <div className="flex justify-end">
-            <Button onClick={add} disabled={saving || !body.trim()}>
-              {saving ? "Сохраняем…" : "Отправить"}
-            </Button>
-          </div>
-        </div>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {loading ? <Spinner /> : null}
-        {!loading && !items.length ? (
-          <p className="text-sm text-muted">Комментариев пока нет</p>
-        ) : null}
-        <ul className="space-y-2">
-          {items.map((c) => (
-            <li key={c.id} className="rounded-md border border-line bg-slate-50 px-3 py-2 text-sm">
-              <div className="whitespace-pre-wrap">{c.body}</div>
-              <div className="mt-1 text-xs text-muted">{fmtDateTime(c.created_at)}</div>
-            </li>
-          ))}
-        </ul>
+      <div className="p-4">
+        <CommentsInline entityType={entityType} entityId={entityId} limit={20} />
       </div>
     </section>
   );
